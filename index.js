@@ -16,9 +16,7 @@ app.listen(port, () => {
 
 //connect db
 db.getConnection()
-  .then(() => {
-    console.log("Can reach database");
-  })
+  .then()
   .catch((err) => {
     console.error(err);
   });
