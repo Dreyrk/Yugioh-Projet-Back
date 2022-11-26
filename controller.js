@@ -1,12 +1,18 @@
 import db from "./database.js";
 
+const error = {
+  notFound: { err: "Card not found" },
+  dbGetError: { err: "Error retrieving data from database" },
+  dbPostError: { err: "Error saving cards" },
+};
+
 const controller = {
   getCards: (req, res, next) => {
     db.query("SELECT * FROM yugioh_table").then(([results]) => {
       if (results != null) {
         res.status(200).send(results);
       } else {
-        res.status(404).send("Not Found");
+        res.status(404).send(error.notFound);
       }
     });
   },
@@ -19,13 +25,13 @@ const controller = {
           if (results[0].id === id) {
             res.status(200).send(results[0]);
           } else {
-            res.status(404).send("Card not found");
+            res.status(404).send(error.notFound);
           }
         }
       })
       .catch((err) => {
         console.error(err);
-        res.status(500).send("Error retrieving data from database");
+        res.status(500).send(error.dbGetError);
       });
   },
   postCard: (req, res) => {
@@ -39,7 +45,7 @@ const controller = {
       })
       .catch((err) => {
         console.error(err);
-        res.status(500).send("Error saving users");
+        res.status(500).send(error.dbPostError);
       });
   },
 };

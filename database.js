@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
-dotenv.config();
 import * as mysql from "mysql2/promise";
+dotenv.config();
 
 const db = mysql.createPool({
   host: process.env.DB_HOST,
