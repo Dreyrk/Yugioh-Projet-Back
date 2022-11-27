@@ -17,16 +17,14 @@ const controller = {
     });
   },
   getCardById: (req, res) => {
-    const id = req.params.id;
+    const id = parseInt(req.params.id);
 
-    db.query("SELECT * FROM yugioh_table WHERE ID = ?", [id])
+    db.query("SELECT * FROM yugioh_table WHERE id = ?", [id])
       .then(([results]) => {
         if (results[0] != null) {
-          if (results[0].id === id) {
-            res.status(200).send(results[0]);
-          } else {
-            res.status(404).send(error.notFound);
-          }
+          res.status(200).send(results);
+        } else {
+          res.status(404).send(error.notFound);
         }
       })
       .catch((err) => {
@@ -37,11 +35,11 @@ const controller = {
   postCard: (req, res) => {
     const { name, rarity, description } = req.body;
     db.query(
-      "INSERT INTO yugioh_table(name, rarity, description) VALUES (?, ?, ?)",
+      "INSERT INTO yugioh_table(Name, Rarity, Description) VALUES (?, ?, ?)",
       [name, rarity, description]
     )
       .then(([results]) => {
-        res.status(201).location(`/api/cards/${results.insertId}`);
+        res.location(`/api/cards/${results.insertId}`).sendStatus(201);
       })
       .catch((err) => {
         console.error(err);
