@@ -8,13 +8,26 @@ const error = {
 
 const controller = {
   getCards: (req, res, next) => {
-    db.query("SELECT * FROM yugioh_table").then(([results]) => {
-      if (results != null) {
-        res.status(200).send(results);
-      } else {
-        res.status(404).send(error.notFound);
-      }
-    });
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+
+    if (page) {
+      db.query(`SELECT * FROM yugioh_table LIMIT ${limit}`).then(([cards]) => {
+        if (page > 0) {
+          res.status(200).send(cards);
+        } else {
+          res.status(404).send(error.notFound);
+        }
+      });
+    } else {
+      db.query("SELECT * FROM yugioh_table").then(([results]) => {
+        if (results != null) {
+          res.status(200).send(results);
+        } else {
+          res.status(404).send(error.notFound);
+        }
+      });
+    }
   },
   getCardById: (req, res) => {
     const id = parseInt(req.params.id);
