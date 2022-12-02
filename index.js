@@ -15,11 +15,13 @@ app.use(cors());
 app.use(router);
 
 //connect db
-db.getConnection()
-  .then()
-  .catch((err) => {
-    console.error(err);
-  });
+
+try {
+  db.authenticate();
+  console.log("DB connected");
+} catch (error) {
+  console.error(error);
+}
 
 //Start server
 
