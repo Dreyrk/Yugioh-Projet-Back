@@ -1,4 +1,5 @@
 import db from "./database.js";
+import CardsModel from "./models.js";
 
 const error = {
   notFound: { err: "Card not found" },
@@ -7,27 +8,48 @@ const error = {
 };
 
 const controller = {
-  getCards: (req, res, next) => {
-    const page = parseInt(req.query.page);
-    const limit = parseInt(req.query.limit);
+  getCards: async (req, res) => {
+    const { page, limit } = req.query;
 
-    if (page) {
-      db.query(`SELECT * FROM yugioh_table LIMIT ${limit}`).then(([cards]) => {
-        if (page > 0) {
-          res.status(200).send(cards);
-        } else {
-          res.status(404).send(error.notFound);
-        }
-      });
-    } else {
-      db.query("SELECT * FROM yugioh_table").then(([results]) => {
-        if (results != null) {
+    const pageNumber = Number.parseInt(page);
+    const limitNumber = Number.parseInt(limit);
+
+    let pages = 0;
+
+    if (pageNumber > 0 && !Number.isNaN(pageNumber)) {
+      pages = pageNumber;
+    }
+
+    let size = 13;
+
+    if (limitNumber > 0 && !Number.isNaN(limitNumber)) {
+      size = limitNumber;
+    }
+
+    const cards = await CardsModel.findAndCountAll({
+      limit: size,
+      offset: pages * size,
+      attributes: ["Name", "Rarity", "Description"],
+    });
+
+    res.status(200).send({
+      results: cards.rows,
+      totalPages: Math.ceil(cards.count / size),
+    });
+  },
+  getAllCards: (req, res) => {
+    db.query("SELECT * FROM yugioh_table")
+      .then(([results]) => {
+        if (results[0] != null) {
           res.status(200).send(results);
         } else {
           res.status(404).send(error.notFound);
         }
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send(error.dbGetError);
       });
-    }
   },
   getCardById: (req, res) => {
     const id = parseInt(req.params.id);
