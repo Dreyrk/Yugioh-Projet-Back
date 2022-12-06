@@ -20,7 +20,7 @@ const controller = {
       pages = pageNumber;
     }
 
-    let size = 13;
+    let size = 12;
 
     if (limitNumber > 0 && !Number.isNaN(limitNumber)) {
       size = limitNumber;
