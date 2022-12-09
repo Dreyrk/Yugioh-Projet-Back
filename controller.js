@@ -1,5 +1,5 @@
-import db from "./database.js";
 import CardsModel from "./models.js";
+import { Op } from "sequelize";
 
 const error = {
   notFound: { err: "Card not found" },
@@ -31,55 +31,87 @@ const controller = {
       offset: pages * size,
       attributes: ["Name", "Rarity", "Description"],
     });
-
     res.status(200).send({
       results: cards.rows,
       totalPages: Math.ceil(cards.count / size),
     });
   },
-  getAllCards: (req, res) => {
-    db.query("SELECT * FROM yugioh_table")
-      .then(([results]) => {
-        if (results[0] != null) {
-          res.status(200).send(results);
-        } else {
-          res.status(404).send(error.notFound);
-        }
+  getAllCards: async (req, res) => {
+    const AllCards = await CardsModel.findAndCountAll({
+      attributes: ["Name", "Rarity", "Description"],
+    });
+    res
+      .status(200)
+      .send({
+        results: AllCards.rows,
+        totalCards: AllCards.count,
       })
       .catch((err) => {
         console.error(err);
         res.status(500).send(error.dbGetError);
       });
   },
-  getCardById: (req, res) => {
-    const id = parseInt(req.params.id);
+  searchCards: async (req, res) => {
+    const { name = "", rarity = "" } = req.query;
 
-    db.query("SELECT * FROM yugioh_table WHERE id = ?", [id])
-      .then(([results]) => {
-        if (results[0] != null) {
-          res.status(200).send(results);
-        } else {
-          res.status(404).send(error.notFound);
-        }
+    const Cards = await CardsModel.findAndCountAll({
+      attributes: ["Name", "Rarity", "Description"],
+      where: {
+        Name: {
+          [Op.like]: `${name}%`,
+        },
+        Rarity: {
+          [Op.like]: `%${rarity}%`,
+        },
+      },
+      order: [["Name", "ASC"]],
+    });
+    res
+      .status(200)
+      .send({
+        results: Cards.rows,
+        totalCards: Cards.count,
       })
       .catch((err) => {
         console.error(err);
         res.status(500).send(error.dbGetError);
       });
   },
-  postCard: (req, res) => {
-    const { name, rarity, description } = req.body;
-    db.query(
-      "INSERT INTO yugioh_table(Name, Rarity, Description) VALUES (?, ?, ?)",
-      [name, rarity, description]
-    )
-      .then(([results]) => {
-        res.location(`/api/cards/${results.insertId}`).sendStatus(201);
+  getCardById: async (req, res) => {
+    const id = parseInt(req.params.id);
+    const OneCards = await CardsModel.findOne({
+      attributes: ["Name", "Rarity", "Description"],
+      where: {
+        ID: id,
+      },
+    });
+    res
+      .status(200)
+      .send({
+        results: OneCards,
       })
       .catch((err) => {
         console.error(err);
-        res.status(500).send(error.dbPostError);
+        res.status(500).send(error.dbGetError);
       });
+  },
+  postCard: async (req, res) => {
+    console.log(req.body);
+    const { name = "DefaultName", rarity = "", description = "" } = req.body;
+    const newCard = await CardsModel.create(
+      {
+        Name: name,
+        Rarity: rarity,
+        Description: description,
+      },
+      {
+        isNewRecord: true,
+      }
+    ).catch((err) => {
+      console.error(err);
+      res.status(500).send(error.dbPostError);
+    });
+    res.status(201).send({ data: newCard });
   },
 };
 

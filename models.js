@@ -6,7 +6,8 @@ const CardModel = db.define(
   {
     ID: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      primaryKey: true,
+      autoIncrement: true,
     },
     Name: {
       type: DataTypes.STRING,
@@ -20,7 +21,10 @@ const CardModel = db.define(
   },
   {
     tableName: "yugioh_table",
+    timestamps: false,
   }
 );
 
 export default CardModel;
+
+//
