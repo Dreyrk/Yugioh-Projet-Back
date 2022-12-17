@@ -1,4 +1,5 @@
-import db from "./database.js";
+import CardsModel from "./models.js";
+import { Op } from "sequelize";
 
 const error = {
   notFound: { err: "Card not found" },
@@ -7,57 +8,110 @@ const error = {
 };
 
 const controller = {
-  getCards: (req, res, next) => {
-    const page = parseInt(req.query.page);
-    const limit = parseInt(req.query.limit);
+  getCards: async (req, res) => {
+    const { page, limit } = req.query;
 
-    if (page) {
-      db.query(`SELECT * FROM yugioh_table LIMIT ${limit}`).then(([cards]) => {
-        if (page > 0) {
-          res.status(200).send(cards);
-        } else {
-          res.status(404).send(error.notFound);
-        }
-      });
-    } else {
-      db.query("SELECT * FROM yugioh_table").then(([results]) => {
-        if (results != null) {
-          res.status(200).send(results);
-        } else {
-          res.status(404).send(error.notFound);
-        }
-      });
+    const pageNumber = Number.parseInt(page);
+    const limitNumber = Number.parseInt(limit);
+
+    let pages = 0;
+
+    if (pageNumber > 0 && !Number.isNaN(pageNumber)) {
+      pages = pageNumber;
     }
-  },
-  getCardById: (req, res) => {
-    const id = parseInt(req.params.id);
 
-    db.query("SELECT * FROM yugioh_table WHERE id = ?", [id])
-      .then(([results]) => {
-        if (results[0] != null) {
-          res.status(200).send(results);
-        } else {
-          res.status(404).send(error.notFound);
-        }
+    let size = 12;
+
+    if (limitNumber > 0 && !Number.isNaN(limitNumber)) {
+      size = limitNumber;
+    }
+
+    const cards = await CardsModel.findAndCountAll({
+      limit: size,
+      offset: pages * size,
+      attributes: ["Name", "Rarity", "Description"],
+    });
+    res.status(200).send({
+      results: cards.rows,
+      totalPages: Math.ceil(cards.count / size),
+    });
+  },
+  getAllCards: async (req, res) => {
+    const AllCards = await CardsModel.findAndCountAll({
+      attributes: ["Name", "Rarity", "Description"],
+    });
+    res
+      .status(200)
+      .send({
+        results: AllCards.rows,
+        totalCards: AllCards.count,
       })
       .catch((err) => {
         console.error(err);
         res.status(500).send(error.dbGetError);
       });
   },
-  postCard: (req, res) => {
-    const { name, rarity, description } = req.body;
-    db.query(
-      "INSERT INTO yugioh_table(Name, Rarity, Description) VALUES (?, ?, ?)",
-      [name, rarity, description]
-    )
-      .then(([results]) => {
-        res.location(`/api/cards/${results.insertId}`).sendStatus(201);
+  searchCards: async (req, res) => {
+    const { name = "", rarity = "" } = req.query;
+
+    const Cards = await CardsModel.findAndCountAll({
+      attributes: ["Name", "Rarity", "Description"],
+      where: {
+        Name: {
+          [Op.like]: `${name}%`,
+        },
+        Rarity: {
+          [Op.like]: `%${rarity}%`,
+        },
+      },
+      order: [["Name", "ASC"]],
+    });
+    res
+      .status(200)
+      .send({
+        results: Cards.rows,
+        totalCards: Cards.count,
       })
       .catch((err) => {
         console.error(err);
-        res.status(500).send(error.dbPostError);
+        res.status(500).send(error.dbGetError);
       });
+  },
+  getCardById: async (req, res) => {
+    const id = parseInt(req.params.id);
+    const OneCards = await CardsModel.findOne({
+      attributes: ["Name", "Rarity", "Description"],
+      where: {
+        ID: id,
+      },
+    });
+    res
+      .status(200)
+      .send({
+        results: OneCards,
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send(error.dbGetError);
+      });
+  },
+  postCard: async (req, res) => {
+    console.log(req.body);
+    const { name = "DefaultName", rarity = "", description = "" } = req.body;
+    const newCard = await CardsModel.create(
+      {
+        Name: name,
+        Rarity: rarity,
+        Description: description,
+      },
+      {
+        isNewRecord: true,
+      }
+    ).catch((err) => {
+      console.error(err);
+      res.status(500).send(error.dbPostError);
+    });
+    res.status(201).send({ data: newCard });
   },
 };
 

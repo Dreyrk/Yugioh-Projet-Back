@@ -10,7 +10,9 @@ router.get("/", (req, res, next) => {
 });
 
 router.get("/api/cards", controller.getCards);
+router.get("/api/all", controller.getAllCards);
 router.get("/api/cards/:id", controller.getCardById);
+router.get("/api/search/", controller.searchCards);
 
 //Routes POST
 
